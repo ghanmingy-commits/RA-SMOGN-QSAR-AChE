@@ -1,0 +1,167 @@
+# Validation
+
+val_results = []
+
+for name, model in best_models.items():
+    y_val_pred = model.predict(X_val)
+
+    r2_val = r2_score(y_val, y_val_pred)
+    rmse_val = np.sqrt(mean_squared_error(y_val, y_val_pred))
+    mae_val = mean_absolute_error(y_val, y_val_pred)
+
+    val_results.append({
+        'Model': name,
+        'Val_R2': r2_val,
+        'Val_RMSE': rmse_val,
+        'Val_MAE': mae_val
+    })
+
+val_results_df = (
+    pd.DataFrame(val_results)
+    .sort_values('Val_R2', ascending=False)
+    .reset_index(drop=True)
+)
+
+display(val_results_df)
+
+
+# Best model
+
+top_model_name = val_results_df.iloc[0]['Model']
+best_model = best_models[top_model_name]
+
+print("Best model:", top_model_name)
+
+
+# Test evaluation
+
+y_test_pred = best_model.predict(X_test)
+
+test_r2 = r2_score(y_test, y_test_pred)
+test_rmse = np.sqrt(mean_squared_error(y_test, y_test_pred))
+test_mae = mean_absolute_error(y_test, y_test_pred)
+
+print("Test R2   :", test_r2)
+print("Test RMSE :", test_rmse)
+print("Test MAE  :", test_mae)
+
+
+# Actual vs Predicted
+
+plt.figure(figsize=(6, 6))
+
+plt.scatter(y_test, y_test_pred)
+
+plt.plot(
+    [y_test.min(), y_test.max()],
+    [y_test.min(), y_test.max()],
+    linestyle='--'
+)
+
+plt.xlabel("Actual")
+plt.ylabel("Predicted")
+plt.title(f"Actual vs Predicted ({top_model_name})")
+
+plt.tight_layout()
+plt.show()
+
+
+# Residuals
+
+residuals = y_test - y_test_pred
+
+plt.figure(figsize=(6, 4))
+
+plt.hist(residuals, bins=30)
+
+plt.xlabel("Residual")
+plt.ylabel("Frequency")
+plt.title(f"Residual Distribution ({top_model_name})")
+
+plt.tight_layout()
+plt.show()
+
+
+# SHAP
+
+!pip install -q shap
+
+import shap
+
+feature_names = X_df.columns.tolist()
+
+explainer = shap.TreeExplainer(best_model)
+
+shap_values = explainer.shap_values(X_test)
+
+
+# SHAP summary
+
+shap.summary_plot(
+    shap_values,
+    X_test,
+    feature_names=feature_names
+)
+
+
+# SHAP feature importance
+
+mean_abs_shap_values = np.abs(shap_values).mean(axis=0)
+
+shap_importance_df = pd.DataFrame({
+    "Feature": feature_names,
+    "Mean_Absolute_SHAP": mean_abs_shap_values
+})
+
+shap_importance_df = (
+    shap_importance_df
+    .sort_values("Mean_Absolute_SHAP", ascending=False)
+    .reset_index(drop=True)
+)
+
+display(shap_importance_df.head(20))
+
+top_feature_name = shap_importance_df.iloc[0]["Feature"]
+
+print("Top SHAP feature:", top_feature_name)
+
+
+# SHAP dependence plot
+
+plt.figure(figsize=(7, 5))
+
+shap.dependence_plot(
+    top_feature_name,
+    shap_values,
+    X_test,
+    feature_names=feature_names,
+    show=False
+)
+
+plt.tight_layout()
+
+plt.savefig(
+    f"SHAP_dependence_plot_{top_feature_name}.png",
+    dpi=300,
+    bbox_inches="tight"
+)
+
+plt.savefig(
+    f"SHAP_dependence_plot_{top_feature_name}.pdf",
+    dpi=300,
+    bbox_inches="tight"
+)
+
+plt.show()
+
+
+# Save SHAP results
+
+np.save("shap_values.npy", shap_values)
+
+shap_importance_df.to_csv(
+    "SHAP_feature_importance.csv",
+    index=False
+)
+
+print("SHAP results saved successfully.")
