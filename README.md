@@ -72,11 +72,6 @@ The original bioactivity data can be obtained directly from ChEMBL using the tar
 
 The code is provided to support reproducibility of the computational analysis and can be accessed by the Editorial Board and peer reviewers during the peer-review process.
 
-## Citation
-
-If you use this code or the associated methodology, please cite the corresponding research article:
-
-> Ayyad et al. Enhancing QSAR-Based Prediction of Acetylcholinesterase Inhibitors via RA-SMOGN Data Augmentation and Explainable Machine Learning.
 
 ## Data Source
 
